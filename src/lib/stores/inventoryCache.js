@@ -13,6 +13,7 @@ const SYNC_INTERVAL_MS = 3 * 60 * 1000; // Background sync every 3 minutes
  * @property {number} id
  * @property {string} x_name
  * @property {number} x_studio_items_count
+ * @property {string} x_studio_expiry_date
  * // Add more field types based on your Odoo model
  */
 
@@ -174,6 +175,7 @@ function createCacheStore() {
 				'id',
 				'x_name',
 				'x_studio_items_count',
+				'x_studio_expiry_date',
 				// Add all fields from your Odoo model here
 			];
 

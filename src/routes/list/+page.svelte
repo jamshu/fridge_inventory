@@ -44,6 +44,66 @@
 		}
 	}
 
+	// Handle manual quantity update
+	let editingId = $state(null);
+	let editingValue = $state('');
+
+	function startEditing(record) {
+		editingId = record.id;
+		editingValue = String(Number(record.x_studio_items_count) || 0);
+	}
+
+	function cancelEditing() {
+		editingId = null;
+		editingValue = '';
+	}
+
+	async function saveEdit(id) {
+		const newValue = Number(editingValue);
+		if (isNaN(newValue) || newValue < 0) {
+			alert('Please enter a valid non-negative number');
+			return;
+		}
+
+		try {
+			await inventoryCache.updateItemCount(id, newValue);
+			cancelEditing();
+		} catch (error) {
+			alert(`Failed to update: ${error.message}`);
+		}
+	}
+
+	function handleKeyPress(event, id) {
+		if (event.key === 'Enter') {
+			saveEdit(id);
+		} else if (event.key === 'Escape') {
+			cancelEditing();
+		}
+	}
+
+	function formatDate(dateString) {
+		if (!dateString) return null;
+		try {
+			const date = new Date(dateString);
+			return date.toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric'
+			});
+		} catch (e) {
+			return dateString;
+		}
+	}
+
+	function isExpired(dateString) {
+		if (!dateString) return false;
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const expiry = new Date(dateString);
+		expiry.setHours(0, 0, 0, 0);
+		return expiry < today;
+	}
+
 	function handleRefresh() {
 		inventoryCache.forceRefresh();
 	}
@@ -94,9 +154,40 @@
 								<div class="items-counter">
 									<span class="counter-label">Items:</span>
 									<button class="counter-btn" onclick={() => handleDecrement(record.id)}>-</button>
-									<span class="counter-value">{Number(record.x_studio_items_count) || 0}</span>
+
+									{#if editingId === record.id}
+										<input
+											type="number"
+											class="counter-input"
+											bind:value={editingValue}
+											onblur={() => saveEdit(record.id)}
+											onkeydown={(e) => handleKeyPress(e, record.id)}
+											min="0"
+											autofocus
+										/>
+									{:else}
+										<span
+											class="counter-value editable"
+											onclick={() => startEditing(record)}
+											title="Click to edit"
+										>
+											{Number(record.x_studio_items_count) || 0}
+										</span>
+									{/if}
+
 									<button class="counter-btn" onclick={() => handleIncrement(record.id)}>+</button>
 								</div>
+								{#if record.x_studio_expiry_date}
+									<div class="expiry-info">
+										<span class="expiry-label">Expiry:</span>
+										<span class="expiry-date" class:expired={isExpired(record.x_studio_expiry_date)}>
+											📅 {formatDate(record.x_studio_expiry_date)}
+										</span>
+										{#if isExpired(record.x_studio_expiry_date)}
+											<span class="expired-badge">Expired</span>
+										{/if}
+									</div>
+								{/if}
 							</div>
 						</div>
 						<div class="record-actions">
@@ -319,6 +410,68 @@
 		background: #f5f5f5;
 		padding: 4px 12px;
 		border-radius: 5px;
+	}
+
+	.counter-value.editable {
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.counter-value.editable:hover {
+		background: #e8e8e8;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.counter-input {
+		min-width: 60px;
+		width: 60px;
+		text-align: center;
+		font-size: 1.1em;
+		font-weight: 600;
+		color: #333;
+		background: white;
+		border: 2px solid #667eea;
+		border-radius: 5px;
+		padding: 4px 8px;
+		outline: none;
+	}
+
+	.counter-input:focus {
+		box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+	}
+
+	.expiry-info {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
+	.expiry-label {
+		font-weight: 600;
+		color: #555;
+		font-size: 0.9em;
+	}
+
+	.expiry-date {
+		font-size: 0.9em;
+		color: #666;
+	}
+
+	.expiry-date.expired {
+		color: #e53e3e;
+		font-weight: 600;
+	}
+
+	.expired-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		background: #e53e3e;
+		color: white;
+		border-radius: 4px;
+		font-size: 0.75em;
+		font-weight: 600;
+		text-transform: uppercase;
 	}
 
 	.record-actions {

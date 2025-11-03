@@ -4,6 +4,7 @@
 
 	let name = $state('');
 	let itemsCount = $state(1);
+	let expiryDate = $state('');
 	let loading = $state(false);
 	let message = $state('');
 	let isOffline = $state(!navigator.onLine);
@@ -37,6 +38,11 @@
 				x_studio_items_count: Number(itemsCount)
 			};
 
+			// Add expiry date if provided
+			if (expiryDate.trim()) {
+				payload.x_studio_expiry_date = expiryDate;
+			}
+
 			await inventoryCache.createRecord(payload);
 
 			if (navigator.onLine) {
@@ -48,6 +54,7 @@
 			// Reset form
 			name = '';
 			itemsCount = 1;
+			expiryDate = '';
 		} catch (error) {
 			message = `❌ Error: ${error.message}`;
 		} finally {
@@ -100,6 +107,15 @@
 				min="0"
 				placeholder="Number of items"
 				required
+			/>
+		</div>
+
+		<div class="form-group">
+			<label for="expiryDate">Expiry Date (Optional)</label>
+			<input
+				type="date"
+				id="expiryDate"
+				bind:value={expiryDate}
 			/>
 		</div>
 
