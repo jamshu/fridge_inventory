@@ -3,6 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 
 	let name = $state('');
+	let itemsCount = $state(1);
 	let loading = $state(false);
 	let message = $state('');
 	let isOffline = $state(!navigator.onLine);
@@ -32,8 +33,8 @@
 
 		try {
 			const payload = {
-				x_name: name
-				// Add more fields as needed
+				x_name: name,
+				x_studio_items_count: Number(itemsCount)
 			};
 
 			await inventoryCache.createRecord(payload);
@@ -46,6 +47,7 @@
 
 			// Reset form
 			name = '';
+			itemsCount = 1;
 		} catch (error) {
 			message = `❌ Error: ${error.message}`;
 		} finally {
@@ -85,6 +87,18 @@
 				id="name"
 				bind:value={name}
 				placeholder="Enter Fridge Inventory name"
+				required
+			/>
+		</div>
+
+		<div class="form-group">
+			<label for="itemsCount">Items Count</label>
+			<input
+				type="number"
+				id="itemsCount"
+				bind:value={itemsCount}
+				min="0"
+				placeholder="Number of items"
 				required
 			/>
 		</div>

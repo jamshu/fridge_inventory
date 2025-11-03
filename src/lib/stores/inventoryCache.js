@@ -12,6 +12,7 @@ const SYNC_INTERVAL_MS = 3 * 60 * 1000; // Background sync every 3 minutes
  * @typedef {Object} InventoryRecord
  * @property {number} id
  * @property {string} x_name
+ * @property {number} x_studio_items_count
  * // Add more field types based on your Odoo model
  */
 
@@ -172,6 +173,7 @@ function createCacheStore() {
 			const fields = [
 				'id',
 				'x_name',
+				'x_studio_items_count',
 				// Add all fields from your Odoo model here
 			];
 
@@ -362,6 +364,118 @@ function createCacheStore() {
 		}
 	}
 
+	// Increment item count
+	async function incrementItemCount(id) {
+		try {
+			let currentCount = 0;
+			let recordToUpdate = null;
+
+			// Get current count from cache
+			update(state => {
+				const record = state.records.find(r => r.id === id);
+				if (record) {
+					currentCount = Number(record.x_studio_items_count) || 0;
+					recordToUpdate = { ...record };
+				}
+				return state;
+			});
+
+			const newCount = currentCount + 1;
+
+			// Update in Odoo
+			await odooClient.updateRecord('x_inventory', id, {
+				x_studio_items_count: newCount
+			});
+
+			// Optimistically update cache
+			update(state => ({
+				...state,
+				records: state.records.map(r =>
+					r.id === id ? { ...r, x_studio_items_count: newCount } : r
+				)
+			}));
+
+			// Sync to get the full updated record
+			await sync();
+
+			return newCount;
+		} catch (error) {
+			console.error('Failed to increment item count:', error);
+			throw error;
+		}
+	}
+
+	// Decrement item count
+	async function decrementItemCount(id) {
+		try {
+			let currentCount = 0;
+			let recordToUpdate = null;
+
+			// Get current count from cache
+			update(state => {
+				const record = state.records.find(r => r.id === id);
+				if (record) {
+					currentCount = Number(record.x_studio_items_count) || 0;
+					recordToUpdate = { ...record };
+				}
+				return state;
+			});
+
+			// Don't allow negative counts
+			const newCount = Math.max(0, currentCount - 1);
+
+			// Update in Odoo
+			await odooClient.updateRecord('x_inventory', id, {
+				x_studio_items_count: newCount
+			});
+
+			// Optimistically update cache
+			update(state => ({
+				...state,
+				records: state.records.map(r =>
+					r.id === id ? { ...r, x_studio_items_count: newCount } : r
+				)
+			}));
+
+			// Sync to get the full updated record
+			await sync();
+
+			return newCount;
+		} catch (error) {
+			console.error('Failed to decrement item count:', error);
+			throw error;
+		}
+	}
+
+	// Update item count to a specific value
+	async function updateItemCount(id, newCount) {
+		try {
+			// Ensure count is not negative
+			newCount = Math.max(0, newCount);
+
+			// Update in Odoo
+			await odooClient.updateRecord('x_inventory', id, {
+				x_studio_items_count: newCount
+			});
+
+			// Optimistically update cache
+			update(state => ({
+				...state,
+				records: state.records.map(r =>
+					r.id === id ? { ...r, x_studio_items_count: newCount } : r
+				)
+			}));
+
+			// Sync to get the full updated record
+			await sync();
+
+			return newCount;
+		} catch (error) {
+			console.error('Failed to update item count:', error);
+			throw error;
+		}
+	}
+
 	return {
 		subscribe,
 		initialize,
@@ -370,6 +484,9 @@ function createCacheStore() {
 		destroy,
 		createRecord,
 		updateRecord,
+		updateItemCount,
+		incrementItemCount,
+		decrementItemCount,
 		deleteRecord
 	};
 }

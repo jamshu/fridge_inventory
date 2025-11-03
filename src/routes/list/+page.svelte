@@ -28,6 +28,22 @@
 		}
 	}
 
+	async function handleIncrement(id) {
+		try {
+			await inventoryCache.incrementItemCount(id);
+		} catch (error) {
+			alert(`Failed to increment: ${error.message}`);
+		}
+	}
+
+	async function handleDecrement(id) {
+		try {
+			await inventoryCache.decrementItemCount(id);
+		} catch (error) {
+			alert(`Failed to decrement: ${error.message}`);
+		}
+	}
+
 	function handleRefresh() {
 		inventoryCache.forceRefresh();
 	}
@@ -73,8 +89,15 @@
 					<div class="record-card">
 						<div class="record-content">
 							<h3>{record.x_name}</h3>
-							<!-- Add more fields to display -->
-							<p class="record-meta">ID: {record.id}</p>
+							<div class="record-details">
+								<p class="record-meta">ID: {record.id}</p>
+								<div class="items-counter">
+									<span class="counter-label">Items:</span>
+									<button class="counter-btn" onclick={() => handleDecrement(record.id)}>-</button>
+									<span class="counter-value">{Number(record.x_studio_items_count) || 0}</span>
+									<button class="counter-btn" onclick={() => handleIncrement(record.id)}>+</button>
+								</div>
+							</div>
 						</div>
 						<div class="record-actions">
 							<button class="delete-btn" onclick={() => handleDelete(record.id)}>
@@ -237,10 +260,65 @@
 		font-size: 1.1em;
 	}
 
+	.record-details {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
 	.record-meta {
 		margin: 0;
 		color: #666;
 		font-size: 0.9em;
+	}
+
+	.items-counter {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.counter-label {
+		font-weight: 600;
+		color: #555;
+		font-size: 0.9em;
+	}
+
+	.counter-btn {
+		padding: 4px 10px;
+		background: #667eea;
+		color: white;
+		border: none;
+		border-radius: 5px;
+		font-size: 16px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s;
+		min-width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.counter-btn:hover {
+		background: #5568d3;
+		transform: scale(1.05);
+	}
+
+	.counter-btn:active {
+		transform: scale(0.95);
+	}
+
+	.counter-value {
+		min-width: 40px;
+		text-align: center;
+		font-size: 1.1em;
+		font-weight: 600;
+		color: #333;
+		background: #f5f5f5;
+		padding: 4px 12px;
+		border-radius: 5px;
 	}
 
 	.record-actions {
@@ -306,6 +384,11 @@
 
 		.record-actions {
 			align-self: flex-end;
+		}
+
+		.items-counter {
+			width: 100%;
+			justify-content: flex-start;
 		}
 	}
 </style>
